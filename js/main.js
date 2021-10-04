@@ -93,6 +93,13 @@ window.onload = () => {
      footer = document.querySelector(".footer"),
      headerCities = document.querySelector(".cities-header");
 
+   document.querySelectorAll(".banner-popup__subtitle").forEach((subtitle) => {
+     subtitle.textContent =
+       `Делаем ваш бизнес узнаваемым в городе ${
+         document.querySelector(".top-header__city-name").textContent.trim()
+       }`;
+   });
+
    if (window.scrollY > header.clientHeight * 2) {
      headerScroll.classList.add("_scroll");
    }
@@ -134,6 +141,12 @@ window.onload = () => {
       } else if(target.closest('.cities-header__item')) {
          const text = target.textContent;
          document.querySelector(".top-header__city-name").textContent = text;
+         document.querySelectorAll('.banner-popup__subtitle').forEach(subtitle => {
+            subtitle.textContent =
+              `Делаем ваш бизнес узнаваемым в городе ${
+                document.querySelector(".top-header__city-name").textContent.trim()
+              }`;
+         });
       } else if(target.closest('.top-header__city-wrapper')) {
          headerCities.classList.toggle("_opened");
       }
@@ -519,7 +532,7 @@ tabs();
     const t = Date.parse(endtime) - Date.parse(new Date()),
       seconds = Math.floor((t / 1000) % 60),
       minutes = Math.floor((t / 1000 / 60) % 60),
-      hours = Math.floor((t / (1000 * 60 * 60)) % 99);
+      hours = Math.floor((t / (1000 * 60 * 60)) % 24);
 
     return {
       total: t,
@@ -668,6 +681,7 @@ showMore(".work_show_more", ".work__watch", "block", 4);
          }
 
          slider.update();
+         slider.updateSlides();
 
       });
    });
@@ -726,7 +740,6 @@ showMore(".work_show_more", ".work__watch", "block", 4);
       }
 
       links = document.querySelectorAll('._banner-link');
-      
    }
 
    document.addEventListener('click', (e) => {
@@ -738,11 +751,11 @@ showMore(".work_show_more", ".work__watch", "block", 4);
          if(!item.classList.contains('suggest__link')) {
             const index = Array.from(links).indexOf(item);
 
-            sliderPopup.slideTo(index + 1, 100)
+            sliderPopup.slideTo(index + 1, 1)
          } else {
             const index = Array.from(document.querySelectorAll('.suggest__slide')).indexOf(item.closest('.suggest__slide'));
 
-            sliderPopup.slideTo(index + 1, 100);
+            sliderPopup.slideTo(index + 1, 1);
 
          }
       }
@@ -816,6 +829,7 @@ showMore(".work_show_more", ".work__watch", "block", 4);
     speed: 800,
     grabCursor: true,
     slidesPerView: "auto",
+    slideToClickedSlide: true,
     centeredSlides: true,
     effect: "coverflow",
     coverflowEffect: {
@@ -890,7 +904,8 @@ showMore(".work_show_more", ".work__watch", "block", 4);
     slidesPerView: 5,
     spaceBetween: 63,
     centeredSlides: true,
-    simulateTouch: false,
+    simulateTouch: true,
+    initialSlide: 2,
     slideActiveClass: "suggest__slide-active",
     speed: 800,
     navigation: {
@@ -905,15 +920,18 @@ showMore(".work_show_more", ".work__watch", "block", 4);
         slidesPerView: 1.6,
         centeredSlides: false,
         spaceBetween: 30,
+        initialSlide: 0,
       },
       768: {
         slidesPerView: 3,
         spaceBetween: 50,
         centeredSlides: true,
+        initialSlide: 1,
       },
       942: {
         spaceBetween: 25,
         slidesPerView: 5,
+        initialSlide: 2,
       },
       992: {
         spaceBetween: 63,
@@ -936,7 +954,13 @@ showMore(".work_show_more", ".work__watch", "block", 4);
     },
     on: {
       slideChange: fillFraction,
-    }
+    },
+    preloadImages: false,
+    lazy: {
+      loadPrevNext: true,
+    },
+    watchSlidesProgress: true,
+    watchSlidesVisibility: true,
   });
 
   changeView(suggestSlider, bannerSlider);
@@ -983,6 +1007,13 @@ sliders();
       } else {
         bodyLock();
       }
+      if (isMobile.any()) {
+        history.pushState(
+          "",
+          document.title,
+          window.location.pathname + "#emerge"
+        );
+      }
       currentPopup.classList.add("_open");
       currentPopup.addEventListener("click", function (e) {
         if (!e.target.closest(".popup__content")) {
@@ -994,8 +1025,10 @@ sliders();
 
   function popupClose(popupActive, doUnlock = true) {
     if (unlock) {
+      if (isMobile.any()) {
+        history.pushState("", document.title, window.location.pathname);
+      }
       popupActive.classList.remove("_open");
-
       if (
         popupActive.classList.contains("_form-popup") &&
         popupActive.classList.contains("_success")
@@ -1089,92 +1122,100 @@ popup();
 
 inputChange();
    const steps = () => {
-   const items = Array.from(document.querySelectorAll('.steps__item')),
-         startedImg = items[0].getAttribute("data-img"),
-         startedText = items[0].getAttribute("data-text"),
-         descImg = document.querySelector('.steps__desc-img'),
-         descText = document.querySelector('.steps__desc-text'),
-         stepBlock =  document.querySelector('.steps');
+  const items = Array.from(document.querySelectorAll(".steps__item")),
+    descImg = document.querySelector(".steps__desc-img"),
+    descText = document.querySelector(".steps__desc-text"),
+    stepBlock = document.querySelector(".steps");
 
-   if(!isMobile.any()) {
+  window.addEventListener("scroll", checkStepsScroll);
+  checkStepsScroll();
 
-      for (let index = 0; index < items.length; index++) {
-         const item = items[index];
-         
-         item.addEventListener('mouseover', () => {
-            const itemImg = item.getAttribute('data-img'),
-                  itemText = item.getAttribute('data-text');
+  function checkStepsScroll() {
+    const blockTop = stepBlock.getBoundingClientRect().top,
+      scrollTop = window.pageYOffset,
+      blockOffsetTop = blockTop + scrollTop;
 
-            items.slice(0, index + 1).forEach(el => {
-               el.classList.add('_hovered');
-            });
+    if (
+      scrollTop + window.innerHeight >
+        blockOffsetTop + stepBlock.clientWidth / 4 &&
+      scrollTop - window.innerHeight <
+        blockOffsetTop - stepBlock.clientWidth / 4
+    ) {
+      stepStart();
 
-            descImg.querySelector('img').setAttribute('src', itemImg);
-            descImg.querySelector("source").setAttribute("srcset", itemImg.split('.')[0] + '.webp');
-            descText.innerHTML = itemText;
+      window.removeEventListener("scroll", checkStepsScroll);
+    }
+  }
+
+  function stepStart() {
+    let i = 1;
+
+    let interval = setInterval(() => {
+      if (i >= items.length - 1) {
+        clearInterval(interval);
+        hoverChange();
+      }
+      const item = items[i],
+        itemImg = item.getAttribute("data-img"),
+        itemText = item.getAttribute("data-text");
+
+      item.classList.add("_hovered");
+
+      descText.innerHTML = itemText;
+      descImg.querySelector("img").setAttribute("src", itemImg);
+      descImg
+        .querySelector("source")
+        .setAttribute("srcset", itemImg.split(".")[0] + ".webp");
+
+      i++;
+    }, 750);
+  }
+
+  function hoverChange() {
+    for (let index = 0; index < items.length; index++) {
+      const item = items[index];
+
+      if(!isMobile.any()) {
+         item.addEventListener("mouseover", () => {
+           const itemImg = item.getAttribute("data-img"),
+             itemText = item.getAttribute("data-text");
+
+           items.forEach((item) => item.classList.remove("_hovered"));
+
+           items.slice(0, index + 1).forEach((el) => {
+             el.classList.add("_hovered");
+           });
+
+           descImg.querySelector("img").setAttribute("src", itemImg);
+           descImg
+             .querySelector("source")
+             .setAttribute("srcset", itemImg.split(".")[0] + ".webp");
+           descText.innerHTML = itemText;
          });
+      } else {
+         item.addEventListener("click", () => {
+           const itemImg = item.getAttribute("data-img"),
+             itemText = item.getAttribute("data-text");
 
-         item.addEventListener('mouseout', () => {
-            items.forEach(el => {
-               el.classList.remove('_hovered');
-            });
+           items.forEach((item) => item.classList.remove("_hovered"));
 
-            descImg.querySelector("img").setAttribute("src", startedImg);
-            descImg
-              .querySelector("source")
-              .setAttribute("srcset", startedImg.split(".")[0] + ".webp");
-            descText.innerHTML = startedText;
+           items.slice(0, index + 1).forEach((el) => {
+             el.classList.add("_hovered");
+           });
+
+           descImg.querySelector("img").setAttribute("src", itemImg);
+           descImg
+             .querySelector("source")
+             .setAttribute("srcset", itemImg.split(".")[0] + ".webp");
+           descText.innerHTML = itemText;
          });
       }
-
-   } else {
-      window.addEventListener('scroll', checkStepsScroll);
-      checkStepsScroll();
-   }
-
-   function checkStepsScroll() {
-      const blockTop = stepBlock.getBoundingClientRect().top,
-            scrollTop = window.pageYOffset,
-            blockOffsetTop = blockTop + scrollTop;
-
-      if (
-        scrollTop + window.innerHeight >
-          blockOffsetTop + stepBlock.clientWidth / 2 &&
-        scrollTop - window.innerHeight <
-          blockOffsetTop - stepBlock.clientWidth / 2
-      ) {
-        stepStart();
-
-        window.removeEventListener("scroll", checkStepsScroll);
-      }
-   }
-
-   function stepStart() {
-     let i = 0;
-
-     let interval = setInterval(() => {
-         if (i >= items.length - 1) {
-            clearInterval(interval);
-         }
-         const item = items[i],
-               itemImg = item.getAttribute('data-img'),
-               itemText = item.getAttribute('data-text');
-
-         item.classList.add('_hovered');
-
-         descText.innerHTML = itemText;
-         descImg.querySelector('img').setAttribute('src', itemImg);
-         descImg
-           .querySelector("source")
-           .setAttribute("srcset", itemImg.split(".")[0] + ".webp");
-
-         i++;
-     }, 2000);
-
-   }
+    }
+  }
 };
 
 steps();
+
    const anchorLinks = () => {
    const links = document.querySelectorAll('a._anchor-scroll');
 
@@ -1235,5 +1276,31 @@ steps();
 };
 
 anchorLinks();
+   const changeAddress = () => {
+   const addresses = document.querySelectorAll(".work__item"),
+         addressWrapper = document.querySelector('.work__address');
+
+   for (let index = 0; index < addresses.length; index++) {
+     const address = addresses[index];
+
+     if(!isMobile.any()) {
+        address.addEventListener("mouseover", () => {
+          addresses.forEach((address) => address.classList.remove("_active"));
+          address.classList.add("_active");
+          addressWrapper.innerHTML = address.getAttribute("data-address");
+        });
+     } else {
+        address.addEventListener('click', () => {
+           addresses.forEach((address) => address.classList.remove("_active"));
+           address.classList.add("_active");
+           addressWrapper.innerHTML = address.getAttribute("data-address");
+        });
+     }
+   }
+
+};
+
+changeAddress();
+
 };
 
