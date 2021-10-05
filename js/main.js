@@ -1095,6 +1095,16 @@ sliders();
       popupClose(popupActive);
     }
   });
+
+  if (isMobile.any()) {
+    window.onhashchange = function () {
+      var s = window.location.hash.toString();
+      if (s != "#emerge") {
+        const popupActive = document.querySelector(".popup._open");
+        if (popupActive) popupClose(popupActive);
+      }
+    };
+  }
 }
 
 popup();
